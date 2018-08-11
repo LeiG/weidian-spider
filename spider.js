@@ -6,6 +6,7 @@ const shop = require('./models/shop');
 // command line arguments
 program
   .option('-s, --shopId [value]', 'Shop id to be scraped')
+  .option('-i, --items [n]', 'Number of items to scrape', parseInt)
   .parse(process.argv);
 
 const extractItems = () => {
@@ -26,10 +27,14 @@ const scrapeInfiniteScrollItems = async (page, extractItems, itemTargetCount, sc
     let previousHeight;
     while (items.length < itemTargetCount) {
       items = await page.evaluate(extractItems);
+
+      // scroll down
       previousHeight = await page.evaluate('document.body.scrollHeight');
       await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
       await page.waitForFunction(`document.body.scrollHeight > ${previousHeight}`);
-      await page.waitFor(scrollDelay);
+
+      // sleep between scrolling
+      await page.waitFor(scrollDelay + Math.floor((Math.random() - 1) * 2000));
     }
   } catch(e) {
     console.log("error:" + e);
@@ -50,7 +55,7 @@ const run = async () => {
   await page.click('#tabbarItems > span:nth-child(4)');
   await page.waitFor(1000);
 
-  const items = await scrapeInfiniteScrollItems(page, extractItems, 10);
+  const items = await scrapeInfiniteScrollItems(page, extractItems, program.items);
 
   console.log(items);
 
