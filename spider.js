@@ -1,7 +1,9 @@
+const mongoose = require('mongoose');
 const program = require('commander');
 const puppeteer = require('puppeteer');
 
-const shop = require('./models/shop');
+const Item = require('./models/item');
+const Weidian = require('./models/weidian');
 
 // command line arguments
 program
@@ -49,7 +51,7 @@ const run = async () => {
 
   page.setViewport({ width: 1280, height: 926 });
 
-  await page.goto(shop.url + program.shopId);
+  await page.goto(Weidian.shopUrl + program.shopId);
   await page.waitFor(1000);
 
   await page.click('#tabbarItems > span:nth-child(4)');
