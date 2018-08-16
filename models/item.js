@@ -24,13 +24,14 @@ const itemSchema = new mongoose.Schema({
     type: String,
     lowercase: true
   },
-  imagesPath: {
+  itemImagesUrl: {
     type: [String],
     required: arr => arr.length > 0
   },
   dateCrawled: {
     type: Date,
-    index: true
+    index: true,
+    default: Date.now
   },
   dateListed: Date
 });
