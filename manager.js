@@ -14,6 +14,24 @@ program
   .option('-d, --no-dryRun', 'Whether to dry run')
   .parse(process.argv);
 
+async function updateItemInDb(item) {
+  // if this item exists, update the entry, don't insert
+  let conditions = {
+    itemId: item.itemId
+  };
+
+  let options = {
+    new: true,
+    overwrite: true
+  };
+
+  await Item.findOneAndUpdate(conditions, item, options, (err, result) => {
+    if (err) {
+      throw err;
+    }
+  });
+}
+
 async function updateItems(items) {
   return Promise.all(
     items
@@ -33,7 +51,7 @@ async function downloadAndUpdateImagesPath(item) {
       let filename = `item_${item.itemId}_${counter}.jpg`;
       let imagePath = path.join(imageBasePath, filename);
 
-      await utils.downloadImage(imageUrl, imagePath, () => {});
+      await utils.downloadImage(imageUrl, imagePath);
       imagesPath.push(imagePath);
     })
   );
@@ -61,6 +79,10 @@ async function run() {
   let items = await fetchItems();
 
   items = await updateItems(items);
+
+  for(let item of items) {
+    await updateItemInDb(item);
+  }
 
   if(!program.dryRun) {
     console.log(program.dryRun);

@@ -36,7 +36,7 @@ function extractItem() {
   return item;
 };
 
-async function iterateItemPages(page, url) {
+async function iterateItemPage(page, url) {
   await page.goto(url);
   await page.waitFor(5000);
 
@@ -77,7 +77,7 @@ async function scrapeInfiniteScrollItems(page, extractItems, itemTargetCount, sc
   return items;
 };
 
-function upsertItem(item) {
+async function upsertItem(item) {
   // if this item exists, update the entry, don't insert
   let conditions = {
     itemId: item.itemId
@@ -88,7 +88,7 @@ function upsertItem(item) {
     setDefaultsOnInsert: true
   };
 
-  Item.findOneAndUpdate(conditions, item, options, (err, result) => {
+  await Item.findOneAndUpdate(conditions, item, options, (err, result) => {
     if (err) {
       throw err;
     }
@@ -109,21 +109,25 @@ async function run() {
 
   const itemsUrl = await scrapeInfiniteScrollItems(page, extractItems, program.items);
 
-  const items = [];
-
-  for(let url of itemsUrl) {
-    items.push(await iterateItemPages(page, url));
-  }
-
-  browser.close();
-
-  console.log(`Upsert ${items.length} items to database.`);
+  console.log(`Scrapped ${itemsUrl.length} item URLs.`);
 
   if (mongoose.connection.readyState == 0) {
     mongoose.connect(Weidian.dbUrl, { useNewUrlParser: true });
   }
 
-  await items.map(item => upsertItem(item));
+  const items = [];
+  for(let url of itemsUrl) {
+    let item = await iterateItemPage(page, url);
+    await upsertItem(item);
+
+    items.push(item);
+
+    if(items.length % 100 == 0) {
+      console.log(`Scrapping/upserting ${items.length} items.`);
+    }
+  }
+
+  browser.close();
 
   process.exit();
 };
