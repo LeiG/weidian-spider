@@ -1,10 +1,12 @@
 const fs = require('fs');
-const request = require('request');
+const request = require('request-promise-native');
 
-const downloadImage = (url, path, callback) => {
-  request.head(uri, function(err, res, body) {
-    request(uri)
+module.exports.downloadImage = async function(url, path, callback) {
+  await request.head(url, function(err, res, body) {
+    request(url)
       .pipe(fs.createWriteStream(path))
       .on('close', callback);
   });
 };
+
+

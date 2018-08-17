@@ -1,13 +1,9 @@
 const mongoose = require('mongoose');
-const path = require('path');
 const program = require('commander');
 const puppeteer = require('puppeteer');
 
-const utils = require('./utils');
 const Item = require('./models/item');
 const Weidian = require('./models/weidian');
-
-const imageBasePath = path.join(__dirname, 'images');
 
 // command line arguments
 program
@@ -15,39 +11,39 @@ program
   .option('-i, --items [n]', 'Number of items to scrape', parseInt)
   .parse(process.argv);
 
-const extractItem = () => {
+function extractItem() {
 
   const itemId = document.getElementsByClassName('report-entrance')[0].href.match(/itemID=(.*)/)[1];
 
   const invoicePriceInCents = parseFloat(document.querySelector('div.price-wrap > span').innerText) * 100;
 
-  const itemTitle = document.querySelector('div.title-wrap > span').innerText.trim();
+  const title = document.querySelector('div.title-wrap > span').innerText.trim();
 
-  const itemDetails = document.querySelector('#dContainer > div.d-content > p').innerText;
+  const details = document.querySelector('#dContainer > div.d-content > p').innerText;
 
-  const itemImagesUrl = Array.from(document.getElementsByClassName('item-img'))
+  const imagesUrl = Array.from(document.getElementsByClassName('item-img'))
     .map(img => img.src)
-    .filter(i => i != undefined);
+    .filter(i => i != undefined && i.startsWith("https"));
 
   const item = {
     itemId: itemId,
     invoicePriceInCents: invoicePriceInCents,
-    itemTitle: itemTitle,
-    itemDetails: itemDetails,
-    itemImagesUrl: itemImagesUrl
+    title: title,
+    details: details,
+    imagesUrl: imagesUrl
   };
 
   return item;
 };
 
-const iterateItemPages = async (page, url) => {
+async function iterateItemPages(page, url) {
   await page.goto(url);
   await page.waitFor(5000);
 
   return await page.evaluate(extractItem);
 };
 
-const extractItems = async () => {
+async function extractItems() {
   const extractedElements = document.querySelectorAll('li.list-item.normal-cart.tabbar-item');
 
   const itemsUrl = [];
@@ -58,7 +54,7 @@ const extractItems = async () => {
   return itemsUrl;
 };
 
-const scrapeInfiniteScrollItems = async (page, extractItems, itemTargetCount, scrollDelay = 5000) => {
+async function scrapeInfiniteScrollItems(page, extractItems, itemTargetCount, scrollDelay = 5000) {
   let items = [];
 
   try {
@@ -81,33 +77,25 @@ const scrapeInfiniteScrollItems = async (page, extractItems, itemTargetCount, sc
   return items;
 };
 
-const upsertItem = (item) => {
-  const DB_URL = 'mongodb://localhost:27017/weidiandb';
-
-  if (mongoose.connection.readyState == 0) {
-    mongoose.connect(DB_URL, { useNewUrlParser: true });
-  }
-
+function upsertItem(item) {
   // if this item exists, update the entry, don't insert
-	let conditions = {
+  let conditions = {
     itemId: item.itemId
   };
-	let options = {
+  let options = {
     upsert: true,
     new: true,
     setDefaultsOnInsert: true
   };
 
-  console.log('upserting to mongodb!');
-
   Item.findOneAndUpdate(conditions, item, options, (err, result) => {
-  	if (err) {
+    if (err) {
       throw err;
     }
   });
 };
 
-const run = async () => {
+async function run() {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
 
@@ -129,9 +117,15 @@ const run = async () => {
 
   browser.close();
 
-  console.log(items);
+  console.log(`Upsert ${items.length} items to database.`);
 
-  items.map((item) => upsertItem(item));
+  if (mongoose.connection.readyState == 0) {
+    mongoose.connect(Weidian.dbUrl, { useNewUrlParser: true });
+  }
+
+  await items.map(item => upsertItem(item));
+
+  process.exit();
 };
 
 run();

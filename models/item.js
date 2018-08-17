@@ -12,21 +12,23 @@ const itemSchema = new mongoose.Schema({
     required: p => p > 0
   },
   retailPriceInCents: {
-    type: Number,
-    required: p => p > this.invoicePriceInCents
+    type: Number
   },
-  itemTitle: {
+  title: {
     type: String,
     required: true,
     lowercase: true
   },
-  itemDetails: {
+  details: {
     type: String,
     lowercase: true
   },
-  itemImagesUrl: {
+  imagesUrl: {
     type: [String],
     required: arr => arr.length > 0
+  },
+  imagesPath: {
+    type: [String]
   },
   dateCrawled: {
     type: Date,
