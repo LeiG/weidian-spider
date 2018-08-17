@@ -48,7 +48,7 @@ async function downloadAndUpdateImagesPath(item) {
     item.imagesUrl
     .map(async (imageUrl) => {
       counter++;
-      let filename = `item_${item.itemId}_${counter}.jpg`;
+      let filename = `item_${item.itemId}_${counter}.jpeg`;
       let imagePath = path.join(imageBasePath, filename);
 
       await utils.downloadImage(imageUrl, imagePath);
