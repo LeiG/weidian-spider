@@ -12,26 +12,32 @@ program
   .parse(process.argv);
 
 function extractItem() {
+  let item;
 
-  const itemId = document.getElementsByClassName('report-entrance')[0].href.match(/itemID=(.*)/)[1];
+  try {
+    const itemId = document.getElementsByClassName('report-entrance')[0].href.match(/itemID=(.*)/)[1];
 
-  const invoicePriceInCents = parseFloat(document.querySelector('div.price-wrap > span').innerText) * 100;
+    const invoicePriceInCents = parseFloat(document.querySelector('div.price-wrap > span').innerText) * 100;
 
-  const title = document.querySelector('div.title-wrap > span').innerText.trim();
+    const title = document.querySelector('div.title-wrap > span').innerText.trim();
 
-  const details = document.querySelector('#dContainer > div.d-content > p').innerText;
+    const details = document.querySelector('#dContainer > div.d-content > p').innerText;
 
-  const imagesUrl = Array.from(document.getElementsByClassName('item-img'))
-    .map(img => img.src)
-    .filter(i => i != undefined && i.startsWith("https"));
+    const imagesUrl = Array.from(document.getElementsByClassName('item-img'))
+          .map(img => img.src)
+          .filter(i => i != undefined && i.startsWith("https"));
 
-  const item = {
-    itemId: itemId,
-    invoicePriceInCents: invoicePriceInCents,
-    title: title,
-    details: details,
-    imagesUrl: imagesUrl
-  };
+    item = {
+      itemId: itemId,
+      invoicePriceInCents: invoicePriceInCents,
+      title: title,
+      details: details,
+      imagesUrl: imagesUrl
+    };
+
+  } catch(e) {
+    console.error(e);
+  }
 
   return item;
 };
@@ -71,17 +77,18 @@ async function scrapeInfiniteScrollItems(page, extractItems, itemTargetCount, sc
       await page.waitFor(scrollDelay + Math.floor((Math.random() - 1) * 2000));
     }
   } catch(e) {
-    console.log("error:" + e);
+    console.error("error:" + e);
   }
 
   return items;
 };
 
-async function upsertItem(item) {
-  // if this item exists, update the entry, don't insert
+async function upsertItemInDb(item) {
   let conditions = {
     itemId: item.itemId
   };
+
+  // if this item exists, update the entry, don't insert
   let options = {
     upsert: true,
     new: true,
@@ -89,11 +96,23 @@ async function upsertItem(item) {
   };
 
   await Item.findOneAndUpdate(conditions, item, options, (err, result) => {
-    if (err) {
-      throw err;
+    if(err) {
+      // upsert in MongoDB is not atomic, see
+      // https://stackoverflow.com/questions/37295648/mongoose-duplicate-key-error-with-upsert
+      if(err.code === 11000) {
+        upsertItemInDb(item);
+      } else {
+        throw err;
+      }
     }
   });
 };
+
+async function getLastItem() {
+  const cursor = Item.find().sort({itemId: -1}).limit(1).cursor();
+
+  return await cursor.next();
+}
 
 async function run() {
   const browser = await puppeteer.launch();
@@ -109,22 +128,31 @@ async function run() {
 
   const itemsUrl = await scrapeInfiniteScrollItems(page, extractItems, program.items);
 
-  console.log(`Scrapped ${itemsUrl.length} item URLs.`);
+  console.log(`Scrapped total ${itemsUrl.length} item URLs.`);
 
   if (mongoose.connection.readyState == 0) {
     mongoose.connect(Weidian.dbUrl, { useNewUrlParser: true });
   }
 
-  const items = [];
+  const lastItemInDb = await getLastItem();
+  const lastItemId = lastItemInDb == null ? 0 : lastItemInDb.itemId;
+
+  console.log(`Last scrapped item id in DB is ${lastItemId}.`);
+
+  let counter = 0;
   for(let url of itemsUrl) {
-    let item = await iterateItemPage(page, url);
-    await upsertItem(item);
-
-    items.push(item);
-
-    if(items.length % 100 == 0) {
-      console.log(`Scrapping/upserting ${items.length} items.`);
+    if(counter % 100 == 0) {
+      console.log(`Scrapping ${counter} items so far...`);
     }
+    counter++;
+
+    let item = await iterateItemPage(page, url);
+
+    if(item == undefined || item.itemId <= lastItemId) {
+      continue;
+    }
+
+    await upsertItemInDb(item);
   }
 
   browser.close();
@@ -132,4 +160,4 @@ async function run() {
   process.exit();
 };
 
-run();
+run().catch(error => console.error(error.stack));

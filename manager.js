@@ -32,12 +32,12 @@ async function updateItemInDb(item) {
   });
 }
 
-async function updateItems(items) {
-  return Promise.all(
-    items
-      .map(item => updateRetailPrice(item))
-      .map(async (item) => await downloadAndUpdateImagesPath(item))
-  );
+async function updateItem(item) {
+  let tmp = updateRetailPrice(item);
+
+  tmp = await downloadAndUpdateImagesPath(tmp);
+
+  return tmp;
 };
 
 async function downloadAndUpdateImagesPath(item) {
@@ -62,13 +62,15 @@ async function downloadAndUpdateImagesPath(item) {
 };
 
 function updateRetailPrice(item) {
-  item.retailPriceInCents = Math.ceil(item.invoicePriceInCents * 1.1);
+  // item.retailPriceInCents = Math.ceil(item.invoicePriceInCents * 1.1);
+
+  item.retailPriceInCents = 42;
 
   return item;
 };
 
-async function fetchItems() {
-  return Item.find({}).exec();
+async function fetchItemsCursor() {
+  return Item.find({"dateListed" : { "$exists" : false }}).cursor().eachAsync(async (item) => await updateItem(item));
 };
 
 async function run() {
@@ -76,11 +78,12 @@ async function run() {
     mongoose.connect(Weidian.dbUrl, { useNewUrlParser: true });
   }
 
-  let items = await fetchItems();
+  let items = await fetchItemsCursor();
 
-  items = await updateItems(items);
+  // items = await updateItems(items);
 
   for(let item of items) {
+    console.log(item);
     await updateItemInDb(item);
   }
 
@@ -91,4 +94,4 @@ async function run() {
   process.exit();
 };
 
-run();
+run().catch(error => console.error(error.stack));

@@ -15,7 +15,5 @@ module.exports.downloadImage = async function(url, path) {
       writeStream.write(body, 'binary');
       writeStream.on('finish', () => {});
       writeStream.end();
-    })
+    });
 };
-
-
