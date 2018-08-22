@@ -62,15 +62,22 @@ async function downloadAndUpdateImagesPath(item) {
 };
 
 function updateRetailPrice(item) {
-  // item.retailPriceInCents = Math.ceil(item.invoicePriceInCents * 1.1);
-
-  item.retailPriceInCents = 42;
+  item.retailPriceInCents = Math.ceil(item.invoicePriceInCents * 1.1);
 
   return item;
 };
 
-async function fetchItemsCursor() {
-  return Item.find({"dateListed" : { "$exists" : false }}).cursor().eachAsync(async (item) => await updateItem(item));
+async function updateItems() {
+  const items = [];
+
+  await Item
+    .find({"dateListed" : { "$exists" : false }})
+    .cursor()
+    .eachAsync(async (item) => {
+      items.push(await updateItem(item));
+    });
+
+  return items;
 };
 
 async function run() {
@@ -78,12 +85,9 @@ async function run() {
     mongoose.connect(Weidian.dbUrl, { useNewUrlParser: true });
   }
 
-  let items = await fetchItemsCursor();
-
-  // items = await updateItems(items);
+  let items = await updateItems();
 
   for(let item of items) {
-    console.log(item);
     await updateItemInDb(item);
   }
 
