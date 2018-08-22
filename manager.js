@@ -16,11 +16,11 @@ program
 
 async function updateItemInDb(item) {
   // if this item exists, update the entry, don't insert
-  let conditions = {
+  const conditions = {
     itemId: item.itemId
   };
 
-  let options = {
+  const options = {
     new: true,
     overwrite: true
   };
@@ -85,7 +85,7 @@ async function run() {
     mongoose.connect(Weidian.dbUrl, { useNewUrlParser: true });
   }
 
-  let items = await updateItems();
+  const items = await updateItems();
 
   for(let item of items) {
     await updateItemInDb(item);

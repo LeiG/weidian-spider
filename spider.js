@@ -61,7 +61,7 @@ async function extractItems() {
 };
 
 async function scrapeInfiniteScrollItems(page, extractItems, itemTargetCount, scrollDelay = 5000) {
-  let items = [];
+  const items = [];
 
   try {
     let previousHeight;
@@ -84,12 +84,12 @@ async function scrapeInfiniteScrollItems(page, extractItems, itemTargetCount, sc
 };
 
 async function upsertItemInDb(item) {
-  let conditions = {
+  const conditions = {
     itemId: item.itemId
   };
 
   // if this item exists, update the entry, don't insert
-  let options = {
+  const options = {
     upsert: true,
     new: true,
     setDefaultsOnInsert: true
