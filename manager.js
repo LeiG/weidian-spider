@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
 const path = require('path');
 const program = require('commander');
+const puppeteer = require('puppeteer');
 
 const utils = require('./utils');
+const Creds = require('./models/creds');
 const Item = require('./models/item');
 const Weidian = require('./models/weidian');
 
@@ -13,6 +15,60 @@ program
   // default to false
   .option('-d, --no-dryRun', 'Whether to dry run')
   .parse(process.argv);
+
+async function uploadItem(page, item) {
+  await page.waitFor(1000);
+  await page.click('#i_des');
+  await page.keyboard.type(item.title);
+  await page.waitFor(1000);
+};
+
+async function login(page) {
+  const phoneNumberSelector = '.tele';
+  const passwordSelector = '.login_pass';
+  const loginSelector = '.next-step';
+
+  await page.goto(Weidian.loginUrl);
+  await page.waitFor(1000);
+
+  await page.select('.country-list', 'number:1');
+
+  await page.click(phoneNumberSelector);
+  await page.keyboard.type(Creds.phoneNumber);
+
+  await page.click(passwordSelector);
+  await page.keyboard.type(Creds.password);
+
+  await page.click(loginSelector);
+  await page.waitFor(5000);
+};
+
+async function uploadItems(items) {
+  const browser = await puppeteer.launch({headless: false});
+  const page = await browser.newPage();
+
+  page.setViewport({ width: 1280, height: 926 });
+
+  await login(page);
+
+  // click on item management button
+  await page.click('#menu > div > div:nth-child(3) > div.children > a:nth-child(1)');
+  await page.waitFor(1000);
+
+  for(let item of items) {
+    const newPagePromise = new Promise(x => browser.once('targetcreated', target => x(target.page())));
+
+    await page.click('#right-content > div > div.cpc-items-main-opt > a.add');
+
+    const newPage = await newPagePromise;
+
+    await uploadItem(newPage, item);
+
+    newPage.close();
+
+    await page.waitFor(1000);
+  }
+};
 
 async function updateItemInDb(item) {
   // if this item exists, update the entry, don't insert
@@ -30,7 +86,7 @@ async function updateItemInDb(item) {
       throw err;
     }
   });
-}
+};
 
 async function updateItem(item) {
   let tmp = updateRetailPrice(item);
@@ -87,12 +143,13 @@ async function run() {
 
   const items = await updateItems();
 
-  for(let item of items) {
-    await updateItemInDb(item);
+  // dryRun will not upload items to weidian
+  if(!program.dryRun) {
+    await uploadItems(items);
   }
 
-  if(!program.dryRun) {
-    console.log(program.dryRun);
+  for(let item of items) {
+    await updateItemInDb(item);
   }
 
   process.exit();

@@ -25,7 +25,7 @@ function extractItem() {
 
     const imagesUrl = Array.from(document.getElementsByClassName('item-img'))
           .map(img => img.src)
-          .filter(i => i != undefined && i.startsWith("https"));
+          .filter(i => i != undefined && i.startsWith('https'));
 
     item = {
       itemId: itemId,
