@@ -28,7 +28,15 @@ async function uploadImages(page, imagesPath) {
 async function uploadTitle(page, title) {
   await page.waitFor(1000);
   await page.click('#i_des');
-  await page.keyboard.type(title);
+  await page.keyboard.type(`[${Creds.shopName}]${title}`);
+  await page.waitFor(1000);
+};
+
+async function selectCategory(page) {
+  await page.waitFor(5000);
+  await page.click('#i_do_wrap > div:nth-child(4) > div > div > div.use-select-option-default.ng-binding.ng-scope');
+  await page.waitFor(1000);
+  await page.click('#i_do_wrap > div:nth-child(4) > div > div > div.all-option > div:nth-child(1)');
   await page.waitFor(1000);
 };
 
@@ -52,13 +60,36 @@ async function checkRequireIdBox(page) {
   await page.waitFor(1000);
 };
 
+async function generateDetails(page) {
+  await page.waitFor(1000);
+  await page.click('#i_do_wrap > div:nth-child(26) > label > span.span-btn');
+  await page.waitFor(1000);
+  await page.click('div.editor-list > div.addModulesbtn');
+  await page.waitFor(1000);
+
+  const input = await page.$('input[id="upImage"]');
+  await input.uploadFile(...['images/logo/barcode.jpg']);
+  await page.waitFor(1000);
+};
+
+async function listItem(page) {
+  await page.waitFor(1000);
+  await page.click('#i_do_wrap > button.submit.wdng-btn-major.ng-isolate-scope');
+  await page.waitFor(1000);
+};
+
 async function uploadItem(page, item) {
   await uploadImages(page, item.imagesPath);
   await uploadTitle(page, item.title);
+  await selectCategory(page);
   await uploadRetailPrice(page, item.retailPriceInCents);
   await uploadStock(page);
   await checkRequireIdBox(page);
-  await page.waitFor(1000);
+  await generateDetails(page);
+
+  await page.waitFor(5000);
+  await listItem(page);
+  await page.waitFor(5000);
 };
 
 async function login(page) {
