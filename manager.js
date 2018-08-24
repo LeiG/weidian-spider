@@ -16,10 +16,48 @@ program
   .option('-d, --no-dryRun', 'Whether to dry run')
   .parse(process.argv);
 
-async function uploadItem(page, item) {
+async function uploadImages(page, imagesPath) {
+  await page.waitFor(1000);
+
+  const input = await page.$('input[name="uploadImg[]"]');
+
+  await input.uploadFile(...imagesPath);
+  await page.waitFor(1000);
+};
+
+async function uploadTitle(page, title) {
   await page.waitFor(1000);
   await page.click('#i_des');
-  await page.keyboard.type(item.title);
+  await page.keyboard.type(title);
+  await page.waitFor(1000);
+};
+
+async function uploadRetailPrice(page, retailPrice) {
+  await page.waitFor(1000);
+  await page.click('#i_no_sku_price_wrap > input');
+  await page.keyboard.type((retailPrice / 100).toString());
+  await page.waitFor(1000);
+};
+
+async function uploadStock(page, inStock = 99) {
+  await page.waitFor(1000);
+  await page.click('#i_do_wrap > div:nth-child(9) > input');
+  await page.keyboard.type(inStock.toString());
+  await page.waitFor(1000);
+};
+
+async function checkRequireIdBox(page) {
+  await page.waitFor(1000);
+  await page.click('#i_do_wrap > div:nth-child(23) > label:nth-child(4) > div');
+  await page.waitFor(1000);
+};
+
+async function uploadItem(page, item) {
+  await uploadImages(page, item.imagesPath);
+  await uploadTitle(page, item.title);
+  await uploadRetailPrice(page, item.retailPriceInCents);
+  await uploadStock(page);
+  await checkRequireIdBox(page);
   await page.waitFor(1000);
 };
 
@@ -108,7 +146,9 @@ async function downloadAndUpdateImagesPath(item) {
       let imagePath = path.join(imageBasePath, filename);
 
       await utils.downloadImage(imageUrl, imagePath);
-      imagesPath.push(imagePath);
+
+      const relativePath = path.relative(process.cwd(), imagePath);
+      imagesPath.push(relativePath);
     })
   );
 

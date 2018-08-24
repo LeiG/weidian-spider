@@ -65,3 +65,6 @@ typings/
 
 # image downloads
 images/
+
+# credentials
+models/creds.js

@@ -27,6 +27,7 @@ const itemSchema = new mongoose.Schema({
     type: [String],
     required: arr => arr.length > 0
   },
+  // relative path to where the manager.js is run
   imagesPath: {
     type: [String]
   },
