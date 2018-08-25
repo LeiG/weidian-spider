@@ -136,12 +136,20 @@ async function uploadItems(items) {
 
     const newPage = await newPagePromise;
 
-    await uploadItem(newPage, item);
+    try {
+      await uploadItem(newPage, item);
 
-    newPage.close();
+      newPage.close();
 
-    await page.waitFor(1000);
+      item.dateListed = Date.now();
+
+      await page.waitFor(1000);
+    } catch (e) {
+      console.error(e.stack);
+    }
   }
+
+  return items;
 };
 
 async function updateItemInDb(item) {
@@ -216,11 +224,11 @@ async function run() {
     mongoose.connect(Weidian.dbUrl, { useNewUrlParser: true });
   }
 
-  const items = await updateItems();
+  let items = await updateItems();
 
   // dryRun will not upload items to weidian
   if(!program.dryRun) {
-    await uploadItems(items);
+    items = await uploadItems(items);
   }
 
   for(let item of items) {
