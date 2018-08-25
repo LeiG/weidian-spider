@@ -113,7 +113,7 @@ async function login(page) {
 };
 
 async function uploadItems(items) {
-  const browser = await puppeteer.launch({headless: false});
+  const browser = await puppeteer.launch();
   const page = await browser.newPage();
 
   page.setViewport({ width: 1280, height: 926 });
@@ -144,6 +144,8 @@ async function uploadItems(items) {
       item.dateListed = Date.now();
 
       await page.waitFor(1000);
+
+      await updateItemInDb(item);
     } catch (e) {
       console.error(e.stack);
     }
@@ -229,10 +231,6 @@ async function run() {
   // dryRun will not upload items to weidian
   if(!program.dryRun) {
     items = await uploadItems(items);
-  }
-
-  for(let item of items) {
-    await updateItemInDb(item);
   }
 
   process.exit();
