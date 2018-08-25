@@ -17,3 +17,15 @@ module.exports.downloadImage = async function(url, path) {
       writeStream.end();
     });
 };
+
+module.exports.calcRetailPriceInCents = function(invoicePriceInCents) {
+  let retailPriceInCents = Math.ceil(1.05 * invoicePriceInCents);
+
+  if(invoicePriceInCents % 1000 < 500) {
+    retailPriceInCents = Math.floor(retailPriceInCents / 1000) * 1000 + 499;
+  } else {
+    retailPriceInCents = Math.floor(retailPriceInCents / 1000) * 1000 + 999;
+  }
+
+  return retailPriceInCents;
+};

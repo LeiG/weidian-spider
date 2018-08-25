@@ -125,6 +125,11 @@ async function uploadItems(items) {
   await page.waitFor(1000);
 
   for(let item of items) {
+    // filter out items less than $10
+    if(item.invoicePriceInCents < 1000) {
+      continue;
+    }
+
     const newPagePromise = new Promise(x => browser.once('targetcreated', target => x(target.page())));
 
     await page.click('#right-content > div > div.cpc-items-main-opt > a.add');
@@ -157,14 +162,6 @@ async function updateItemInDb(item) {
   });
 };
 
-async function updateItem(item) {
-  let tmp = updateRetailPrice(item);
-
-  tmp = await downloadAndUpdateImagesPath(tmp);
-
-  return tmp;
-};
-
 async function downloadAndUpdateImagesPath(item) {
   const imagesPath = [];
 
@@ -189,9 +186,16 @@ async function downloadAndUpdateImagesPath(item) {
 };
 
 function updateRetailPrice(item) {
-  item.retailPriceInCents = Math.ceil(item.invoicePriceInCents * 1.1);
-
+  item.retailPriceInCents = utils.calcRetailPriceInCents(item.invoicePriceInCents);
   return item;
+};
+
+async function updateItem(item) {
+  let tmp = updateRetailPrice(item);
+
+  tmp = await downloadAndUpdateImagesPath(tmp);
+
+  return tmp;
 };
 
 async function updateItems() {

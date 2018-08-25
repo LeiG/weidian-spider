@@ -61,7 +61,7 @@ async function extractItems() {
 };
 
 async function scrapeInfiniteScrollItems(page, extractItems, itemTargetCount, scrollDelay = 5000) {
-  const items = [];
+  let items = [];
 
   try {
     let previousHeight;
