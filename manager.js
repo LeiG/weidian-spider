@@ -219,6 +219,7 @@ async function updateItems() {
 
   await Item
     .find({"dateListed" : { "$exists" : false }})
+    .sort({itemId: 1})
     .cursor()
     .eachAsync(async (item) => {
       items.push(await updateItem(item));
