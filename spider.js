@@ -147,10 +147,10 @@ async function run() {
       break;
     }
 
+    counter++;
     if(counter % 100 == 0) {
       console.log(`Scrapping ${counter} items so far...`);
     }
-    counter++;
 
     await upsertItemInDb(item);
   }

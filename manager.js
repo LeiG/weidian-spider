@@ -124,6 +124,7 @@ async function uploadItems(items) {
   await page.click('#menu > div > div:nth-child(3) > div.children > a:nth-child(1)');
   await page.waitFor(1000);
 
+  let counter = 0;
   for(let item of items) {
     // filter out items less than $10
     if(item.invoicePriceInCents < 1000) {
@@ -135,6 +136,11 @@ async function uploadItems(items) {
     await page.click('#right-content > div > div.cpc-items-main-opt > a.add');
 
     const newPage = await newPagePromise;
+
+    counter++;
+    if(counter % 10 == 0) {
+      console.log(`Uploading ${counter} items so far...`);
+    }
 
     try {
       await uploadItem(newPage, item);
