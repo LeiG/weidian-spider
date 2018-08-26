@@ -165,7 +165,7 @@ async function updateItemInDb(item) {
     overwrite: true
   };
 
-  await Item.findOneAndUpdate(conditions, item, options, (err, result) => {
+  Item.findOneAndUpdate(conditions, item, options, (err, result) => {
     if (err) {
       throw err;
     }

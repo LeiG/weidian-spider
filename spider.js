@@ -95,10 +95,10 @@ async function upsertItemInDb(item) {
     setDefaultsOnInsert: true
   };
 
-  await Item.findOneAndUpdate(conditions, item, options, (err, result) => {
+  Item.findOneAndUpdate(conditions, item, options, (err, result) => {
     if(err) {
       // upsert in MongoDB is not atomic, see
-      // https://stackoverflow.com/questions/37295648/mongoose-duplicate-key-error-with-upsert
+      // https://jira.mongodb.org/browse/SERVER-14322
       if(err.code === 11000) {
         upsertItemInDb(item);
       } else {
@@ -141,16 +141,16 @@ async function run() {
 
   let counter = 0;
   for(let url of itemsUrl) {
+    let item = await iterateItemPage(page, url);
+
+    if(item == undefined || item.itemId <= lastItemId) {
+      break;
+    }
+
     if(counter % 100 == 0) {
       console.log(`Scrapping ${counter} items so far...`);
     }
     counter++;
-
-    let item = await iterateItemPage(page, url);
-
-    if(item == undefined || item.itemId <= lastItemId) {
-      continue;
-    }
 
     await upsertItemInDb(item);
   }
