@@ -140,6 +140,7 @@ async function run() {
   console.log(`Last scrapped item id in DB is ${lastItemId}.`);
 
   let counter = 0;
+  itemsUrl.reverse();
   for(let url of itemsUrl) {
     let item = await iterateItemPage(page, url);
 
@@ -148,7 +149,7 @@ async function run() {
     }
 
     counter++;
-    if(counter % 100 == 0) {
+    if(counter % 10 == 0) {
       console.log(`Scrapping ${counter} items so far...`);
     }
 
