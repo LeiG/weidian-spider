@@ -28,7 +28,7 @@ async function uploadImages(page, imagesPath) {
 async function uploadTitle(page, title) {
   await page.waitFor(1000);
   await page.click('#i_des');
-  await page.keyboard.type(`[${Creds.shopName}]${title}`);
+  await page.keyboard.type(`[${Creds.shopName}] ${title}`);
   await page.waitFor(1000);
 };
 
