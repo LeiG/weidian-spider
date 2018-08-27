@@ -14,6 +14,7 @@ const imageBasePath = path.join(__dirname, 'images');
 program
   // default to false
   .option('-d, --no-dryRun', 'Whether to dry run')
+  .option('-o, --overwrite', 'Whether overwrite items uploaded before')
   .parse(process.argv);
 
 async function uploadImages(page, imagesPath) {
@@ -60,14 +61,30 @@ async function checkRequireIdBox(page) {
   await page.waitFor(1000);
 };
 
-async function generateDetails(page) {
-  await page.waitFor(1000);
-  await page.click('#i_do_wrap > div:nth-child(26) > label > span.span-btn');
+async function generateDetails(page, details, images) {
+  // upload details
   await page.waitFor(1000);
   await page.click('div.editor-list > div.addModulesbtn');
   await page.waitFor(1000);
+  await page.click('#select-modules-bars > ul > li:nth-child(1) > div');
+  await page.evaluate((details) => {
+    document.querySelector('#textareaNumber0').value = details;
+  }, details);
 
-  const input = await page.$('input[id="upImage"]');
+  let input;
+  // upload images
+  await page.click('div.editor-list > div.addModulesbtn');
+  await page.waitFor(1000);
+
+  input = await page.$('input[id="upImage"]');
+  await input.uploadFile(...images);
+  await page.waitFor(5000);
+
+  // upload barcode
+  await page.click('div.editor-list > div.addModulesbtn');
+  await page.waitFor(1000);
+
+  input = await page.$('input[id="upImage"]');
   await input.uploadFile(...['images/logo/barcode.jpg']);
   await page.waitFor(1000);
 };
@@ -85,7 +102,7 @@ async function uploadItem(page, item) {
   await uploadRetailPrice(page, item.retailPriceInCents);
   await uploadStock(page);
   await checkRequireIdBox(page);
-  await generateDetails(page);
+  await generateDetails(page, item.details, item.imagesPath);
 
   await page.waitFor(5000);
   await listItem(page);
@@ -217,13 +234,16 @@ async function updateItem(item) {
 async function updateItems() {
   const items = [];
 
-  await Item
-    .find({"dateListed" : { "$exists" : false }})
-    .sort({itemId: 1})
-    .cursor()
-    .eachAsync(async (item) => {
-      items.push(await updateItem(item));
-    });
+  let cursor;
+  if(program.overwrite) {
+    cursor = Item.find().sort({itemId: 1}).cursor();
+  } else {
+    cursor = Item.find({"dateListed" : { "$exists" : false }}).sort({itemId: 1}).cursor();
+  }
+
+  await cursor.eachAsync(async (item) => {
+    items.push(await updateItem(item));
+  });
 
   return items;
 };
