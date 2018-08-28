@@ -67,9 +67,10 @@ async function generateDetails(page, details, images) {
   await page.click('div.editor-list > div.addModulesbtn');
   await page.waitFor(1000);
   await page.click('#select-modules-bars > ul > li:nth-child(1) > div');
-  await page.evaluate((details) => {
-    document.querySelector('#textareaNumber0').value = details;
-  }, details);
+  await page.waitFor(1000);
+  await page.click('#textareaNumber0');
+  await page.keyboard.type(details);
+  await page.waitFor(1000);
 
   let input;
   // upload images
